@@ -14,6 +14,8 @@ This demo turns a small business review corpus into a personalized, evidence-bac
 
 ## Demo Proof
 
+For the live narration path, use [DEMO_SCRIPT.md](DEMO_SCRIPT.md).
+
 ### 1. Default User Info -> personalized wiki
 
 ![Default user info generates wiki](screenshots/01-initial-default-wiki.png)
@@ -40,7 +42,7 @@ The review page lets the demo operator inject a fresh review. After adding a man
 
 ### 5. Stack status is visible in the UI
 
-The running UI exposes Redis, Cognee, and stateless LLM status. In the verified run, Redis was connected in `redis-hash` mode, Cognee completed, and evidence cards showed Redis-backed retrieval.
+The running UI exposes Redis review retrieval, Redis session memory, Cognee, and stateless LLM status. In the verified run, Redis was connected in `redis-hash` mode, Cognee completed, and evidence cards showed Redis-backed retrieval.
 
 ![Redis Cognee status](screenshots/07-redis-cognee-status.png)
 
