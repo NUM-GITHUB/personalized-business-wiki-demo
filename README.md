@@ -40,6 +40,8 @@ The review page lets the demo operator inject a fresh review. After adding a man
 
 ![Wiki changes after added review](screenshots/06-wiki-after-added-review.png)
 
+![Review add-delete demo controls](screenshots/08-review-add-delete-demo.png)
+
 ### 5. Stack status is visible in the UI
 
 The running UI exposes Redis review retrieval, Redis session memory, Cognee, and stateless LLM status. In the verified run, Redis was connected in `redis-hash` mode, Cognee completed, and evidence cards showed Redis-backed retrieval.
