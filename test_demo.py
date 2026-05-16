@@ -230,6 +230,34 @@ She want to meet his boy friend who prefer special manual."""
         self.assertIn("r421", evidence_ids)
         self.assertIn("r421", result["wiki"])
 
+    def test_deleted_review_is_removed_from_same_user_info_retrieval(self) -> None:
+        server.reset_demo()
+        server.add_review(
+            {
+                "body": (
+                    "Brand new review: the Panama Gesha manual-brew flight was ideal for a quiet date. "
+                    "There was no line, and the tasting notes made the visit feel special."
+                ),
+                "rating": 5,
+                "reviewDate": "2026-05-16",
+                "tags": "manual-brew gesha quiet date no-line",
+            }
+        )
+        text = "Name: Mina. She wants to meet her boyfriend who prefers special manual brew coffee. She dislikes long lines."
+        before = server.generate_personalized_wiki(text)
+        before_ids = {review["id"] for review in before["evidence"]}
+        self.assertIn("r421", before_ids)
+
+        deleted = server.delete_review("r421")
+        self.assertEqual(deleted["reviewCount"], 420)
+        self.assertEqual(deleted["deletedReview"]["id"], "r421")
+        self.assertNotIn("r421", {review["id"] for review in deleted["reviews"]})
+
+        after = server.generate_personalized_wiki(text)
+        after_ids = {review["id"] for review in after["evidence"]}
+        self.assertNotIn("r421", after_ids)
+        self.assertNotIn("r421", after["wiki"])
+
 
 if __name__ == "__main__":
     unittest.main()

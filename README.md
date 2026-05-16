@@ -34,7 +34,7 @@ The laptop / 60-120 minute work-block sentence is removed. The regenerated wiki 
 
 ### 4. Add a new review -> same user info produces a new wiki
 
-The review page lets the demo operator inject a fresh review. After adding a manual-brew/Gesha review, the same user profile regenerates a wiki that cites the new review evidence.
+The review page lets the demo operator inject a fresh review. After adding a manual-brew/Gesha review, the same user profile regenerates a wiki that cites the new review evidence. The page also exposes delete controls for user-added reviews, so deleting that injected review and regenerating removes the review id and its claims from the evidence set.
 
 ![Review page add-review form](screenshots/05-review-add-page.png)
 
@@ -110,6 +110,7 @@ http://127.0.0.1:8891/review
 - `POST /api/index`
 - `GET /api/reviews`
 - `POST /api/reviews` with `{ "body": "...", "rating": 5, "reviewDate": "2026-05-16", "tags": "manual quiet date" }`
+- `DELETE /api/reviews/:id`
 - `POST /api/wiki/generate` with `{ "userText": "..." }`
 
 ## Implementation Notes
@@ -127,4 +128,4 @@ python3 -m py_compile server.py test_demo.py
 python3 -m unittest -v
 ```
 
-Current validation: 14 unit tests passing, including Redis fallback, latest-review-wins conflict handling, added-review retrieval, add/delete user-info behavior, and "no rule-based personalized wiki without LLM key."
+Current validation: run `python3 -m unittest -v`. The suite covers Redis fallback, latest-review-wins conflict handling, added-review retrieval, deleted-review removal, add/delete user-info behavior, and "no rule-based personalized wiki without LLM key."

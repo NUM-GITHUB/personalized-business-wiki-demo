@@ -421,6 +421,48 @@ button:disabled {
   margin-bottom: 14px;
 }
 
+.review-demo-panel {
+  min-height: auto;
+  margin-bottom: 14px;
+}
+
+.review-scenario-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+
+.scenario-card {
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+  min-height: 238px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--blue);
+  border-radius: 8px;
+  background: #fffefd;
+}
+
+.scenario-card strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 1rem;
+}
+
+.scenario-card p {
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.scenario-card button {
+  width: 100%;
+  min-height: 40px;
+}
+
 .add-review-form {
   display: grid;
   grid-template-columns: minmax(360px, 1fr) minmax(92px, 110px) minmax(150px, 180px) minmax(180px, 260px) minmax(130px, 150px);
@@ -520,9 +562,28 @@ button:disabled {
   margin-bottom: 8px;
 }
 
+.review-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .review-row-head span {
   color: var(--muted);
   font-size: 0.84rem;
+}
+
+.delete-review-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-color: #d8b5ab;
+  background: #fff6f3;
+  color: #8f352d;
+  font-size: 0.8rem;
+}
+
+.delete-review-button:hover:not(:disabled) {
+  background: #ffece6;
 }
 
 .review-row p {
@@ -547,6 +608,7 @@ button:disabled {
 @media (max-width: 900px) {
   .review-tools,
   .add-review-form,
+  .review-scenario-list,
   .review-page-grid {
     grid-template-columns: 1fr;
   }

@@ -82,7 +82,7 @@ Expected result:
 
 ### 5. Add Review
 
-Open `/review`.
+Open `/review`. Use either the manual form or the `Manual Brew Date` scenario button.
 
 Add:
 
@@ -105,7 +105,19 @@ Expected result:
 - evidence includes the newly added review id
 - wiki mentions Gesha/manual brew or the new no-line afternoon evidence
 
-### 6. Close
+### 6. Delete Review
+
+Return to `/review`, search for the added review id, and click `Delete`.
+
+Then return to `/` and click `Generate Wiki` again with the same manual-brew user info.
+
+Expected result:
+
+- the deleted review id is gone from `/review`
+- the deleted review id is absent from the generated evidence cards
+- the wiki no longer cites the deleted review's specific Gesha/manual-brew claim
+
+### 7. Close
 
 Say:
 

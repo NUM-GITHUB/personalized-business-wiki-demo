@@ -475,6 +475,34 @@ def add_review(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def delete_review(review_id: str) -> dict[str, Any]:
+    target_id = str(review_id or "").strip()
+    if not target_id:
+        raise ValueError("Review id is required.")
+    reviews = load_reviews()
+    deleted = next((review for review in reviews if review["id"] == target_id), None)
+    if deleted is None:
+        raise ValueError(f"Review {target_id} was not found.")
+    remaining = [review for review in reviews if review["id"] != target_id]
+    write_json(DATA_DIR / "reviews.json", remaining)
+    index_status = ReviewIndex(remaining).index()
+    state = read_json(STATE_FILE, default_state())
+    state["indexed"] = True
+    state["indexStatus"] = index_status
+    state["evidence"] = [review for review in state.get("evidence", []) if review.get("id") != target_id]
+    for fact in state.get("facts", []):
+        fact["matchedReviewIds"] = [
+            item for item in fact.get("matchedReviewIds", []) if item != target_id
+        ]
+    state["updatedAt"] = now_stamp()
+    write_json(STATE_FILE, state)
+    return {
+        **get_reviews_payload(),
+        "deletedReview": compact_review(deleted),
+        "indexStatus": index_status,
+    }
+
+
 def review_search_text(review: dict[str, Any]) -> str:
     return " ".join(
         [
@@ -1680,6 +1708,19 @@ class DemoHandler(BaseHTTPRequestHandler):
                 self.send_json(generate_personalized_wiki(payload.get("userText", DEFAULT_USER_TEXT)))
             else:
                 self.send_json({"error": "Unknown endpoint"}, status=404)
+        except Exception as exc:
+            self.send_json({"error": str(exc)}, status=500)
+
+    def do_DELETE(self) -> None:
+        parsed = urlparse(self.path)
+        try:
+            if parsed.path.startswith("/api/reviews/"):
+                review_id = unquote(parsed.path.rsplit("/", 1)[-1])
+                self.send_json(delete_review(review_id))
+            else:
+                self.send_json({"error": "Unknown endpoint"}, status=404)
+        except ValueError as exc:
+            self.send_json({"error": str(exc)}, status=404)
         except Exception as exc:
             self.send_json({"error": str(exc)}, status=500)
 
