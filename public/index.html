@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Personalized Business Wiki</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Local business memory demo</p>
+          <h1>Personalized Business Wiki</h1>
+        </div>
+        <div class="status-strip">
+          <span id="indexStatus">Redis: loading</span>
+          <span id="sessionStatus">Session: loading</span>
+          <span id="memoryStatus">Cognee: loading</span>
+          <span id="generatorStatus">Generator: ready</span>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <aside class="panel default-wiki-panel">
+          <div class="panel-head">
+            <h2>Initial Default Wiki</h2>
+            <span>Before user info</span>
+          </div>
+          <div class="wiki-output default-wiki-output" id="defaultWikiOutput"></div>
+        </aside>
+
+        <section class="panel input-panel">
+          <div class="panel-head">
+            <h2>User Info</h2>
+            <span>Editable</span>
+          </div>
+          <textarea id="userText" spellcheck="false"></textarea>
+          <button id="generateButton" type="button">Generate Wiki</button>
+        </section>
+
+        <section class="panel wiki-panel">
+          <div class="panel-head">
+            <h2>Generated Wiki</h2>
+            <span id="updatedAt">Ready</span>
+          </div>
+          <div class="wiki-output" id="wikiOutput"></div>
+          <div class="evidence-grid">
+            <section>
+              <h3>Parsed Facts</h3>
+              <div id="factList" class="mini-list"></div>
+            </section>
+            <section>
+              <h3>Evidence</h3>
+              <div id="evidenceList" class="mini-list"></div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

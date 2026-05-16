@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reviews | Personalized Business Wiki</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell review-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Review evidence browser</p>
+          <h1 id="reviewPageTitle">All Reviews</h1>
+        </div>
+        <div class="status-strip">
+          <a class="nav-link" href="/">Wiki Demo</a>
+          <span id="reviewMeta">Loading</span>
+        </div>
+      </header>
+
+      <section class="review-tools">
+        <label>
+          <span>Search</span>
+          <input id="reviewSearch" type="search" placeholder="wifi, parking, matcha, brunch..." />
+        </label>
+        <label>
+          <span>Tag</span>
+          <select id="tagFilter">
+            <option value="">All tags</option>
+          </select>
+        </label>
+        <label>
+          <span>Sort</span>
+          <select id="sortMode">
+            <option value="newest">Newest first</option>
+            <option value="rating">Highest rating</option>
+            <option value="id">Review id</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="panel review-add-panel">
+        <div class="panel-head">
+          <h2>Add Review</h2>
+          <span id="addReviewStatus">Ready</span>
+        </div>
+        <form id="addReviewForm" class="add-review-form">
+          <label class="review-body-field">
+            <span>Review Text</span>
+            <textarea id="newReviewBody" spellcheck="true" placeholder="I visited Juniper & Finch yesterday..."></textarea>
+          </label>
+          <label>
+            <span>Rating</span>
+            <select id="newReviewRating">
+              <option value="5">5</option>
+              <option value="4">4</option>
+              <option value="3">3</option>
+              <option value="2">2</option>
+              <option value="1">1</option>
+            </select>
+          </label>
+          <label>
+            <span>Date</span>
+            <input id="newReviewDate" type="date" />
+          </label>
+          <label>
+            <span>Tags</span>
+            <input id="newReviewTags" type="text" placeholder="manual, quiet, date" />
+          </label>
+          <button id="addReviewButton" type="submit">Add Review</button>
+        </form>
+      </section>
+
+      <section class="review-page-grid">
+        <aside class="panel review-tags-panel">
+          <div class="panel-head">
+            <h2>Tags</h2>
+            <span id="tagCount">0</span>
+          </div>
+          <div class="theme-list" id="reviewTagList"></div>
+        </aside>
+
+        <section class="panel all-reviews-panel">
+          <div class="panel-head">
+            <h2>Review List</h2>
+            <span id="visibleCount">0 shown</span>
+          </div>
+          <div class="all-review-list" id="reviewList"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/review.js"></script>
+  </body>
+</html>
