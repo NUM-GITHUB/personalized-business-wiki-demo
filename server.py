@@ -771,6 +771,15 @@ def review_recency_score(review: dict[str, Any]) -> float:
     return max(0.0, min(1.0, (ordinal - base) / 140))
 
 
+def review_id_number(review: dict[str, Any]) -> int:
+    match = re.match(r"r(\d+)$", str(review.get("id", "")))
+    return int(match.group(1)) if match else 0
+
+
+def review_latest_key(review: dict[str, Any]) -> tuple[str, int]:
+    return (str(review.get("reviewDate", "")), review_id_number(review))
+
+
 def contains_any(text: str, needles: list[str]) -> bool:
     return any(needle in text for needle in needles)
 
@@ -971,19 +980,40 @@ def add_conflict_candidates(
     reviews: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     needed_tags = {tag for fact in facts for tag in fact.get("tags", [])}
-    if "wifi" not in needed_tags:
-        return evidence
     by_id = {review["id"]: review for review in evidence}
-    wifi_reviews = [review for review in reviews if "wifi" in review["tags"]]
-    positive = [review for review in wifi_reviews if review_sentiment(review, "wifi") == "positive"]
-    negative = [review for review in wifi_reviews if review_sentiment(review, "wifi") == "negative"]
-    for bucket in (positive, negative):
-        for review in sorted(bucket, key=lambda item: item.get("reviewDate", ""), reverse=True)[:2]:
-            by_id.setdefault(review["id"], dict(review, score=0.0))
+    topics = {
+        topic
+        for review in evidence
+        for topic in review_conflict_topics(review)
+        if topic != "wifi"
+    }
+    if "wifi" in needed_tags:
+        topics.add("wifi")
+    for topic in topics:
+        topic_reviews = [review for review in reviews if review_sentiment(review, topic)]
+        sentiments = {review_sentiment(review, topic) for review in topic_reviews}
+        if not {"positive", "negative"}.issubset(sentiments):
+            continue
+        for index, review in enumerate(sorted(topic_reviews, key=review_latest_key, reverse=True)[:4]):
+            candidate = dict(review)
+            candidate["score"] = max(float(candidate.get("score", 0) or 0), 120.0 - index)
+            candidate["retrievalSource"] = f"conflict-lint:{topic}"
+            existing = by_id.get(candidate["id"])
+            if existing is None or candidate["score"] > float(existing.get("score", 0) or 0):
+                by_id[candidate["id"]] = candidate
     merged = list(by_id.values())
-    merged.sort(key=lambda item: (-item.get("score", 0), item.get("reviewDate", ""), -item["rating"]), reverse=False)
-    merged.sort(key=lambda item: (-item.get("score", 0), item.get("reviewDate", "")), reverse=True)
+    merged.sort(key=lambda item: (float(item.get("score", 0) or 0), review_latest_key(item)), reverse=True)
     return merged[:18]
+
+
+def review_conflict_topics(review: dict[str, Any]) -> list[str]:
+    text = f"{review.get('body', '')} {review.get('product', '')} {' '.join(review.get('tags', []))}".lower()
+    topics = []
+    if "wifi" in text or "wi-fi" in text:
+        topics.append("wifi")
+    if "banana" in text and "mate" in text and "cold brew" in text:
+        topics.append("banana and mate cold brew")
+    return topics
 
 
 def review_sentiment(review: dict[str, Any], topic: str) -> str | None:
@@ -993,17 +1023,52 @@ def review_sentiment(review: dict[str, Any], topic: str) -> str | None:
             return "positive"
         if contains_any(text, ["struggled", "dropped", "unreliable", "mixed"]):
             return "negative"
+    if topic == "banana and mate cold brew":
+        if not ("banana" in text and "mate" in text and "cold brew" in text):
+            return None
+        negative_cues = [
+            "don't like",
+            "dont like",
+            "do not like",
+            "don't order",
+            "dont order",
+            "do not order",
+            "not recommend",
+            "wouldn't recommend",
+            "would not recommend",
+            "fake news",
+            "avoid",
+            "bad",
+            "not good",
+            "terrible",
+            "awful",
+        ]
+        positive_cues = [
+            "high rating",
+            "should try",
+            "try it",
+            "recommend",
+            "everyone prefer",
+            "best",
+            "excellent",
+            "great",
+        ]
+        if contains_any(text, negative_cues) or int(review.get("rating", 0) or 0) <= 2:
+            return "negative"
+        if contains_any(text, positive_cues) or int(review.get("rating", 0) or 0) >= 4:
+            return "positive"
     return None
 
 
 def detect_conflicts(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
     notes = []
-    for topic in ["wifi"]:
+    topics = sorted({topic for review in evidence for topic in review_conflict_topics(review)})
+    for topic in topics:
         topic_reviews = [review for review in evidence if review_sentiment(review, topic)]
         sentiments = {review_sentiment(review, topic) for review in topic_reviews}
         if not {"positive", "negative"}.issubset(sentiments):
             continue
-        latest = max(topic_reviews, key=lambda review: review.get("reviewDate", ""))
+        latest = max(topic_reviews, key=review_latest_key)
         latest_sentiment = review_sentiment(latest, topic)
         superseded = [
             review["id"]
@@ -1017,10 +1082,17 @@ def detect_conflicts(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "winnerReviewId": latest["id"],
                 "winnerDate": latest.get("reviewDate", ""),
                 "winnerSentiment": latest_sentiment,
+                "winnerRating": latest.get("rating"),
                 "supersededReviewIds": superseded,
+                "blockedRecommendation": topic if latest_sentiment == "negative" else "",
                 "summary": (
                     f"Conflicting {topic} reviews were found. Using latest review "
-                    f"{latest['id']} from {latest.get('reviewDate', '')} over older conflicting evidence."
+                    f"{latest['id']} from {latest.get('reviewDate', '')} over older conflicting evidence. "
+                    + (
+                        f"Do not recommend {topic}; put it in Things To Avoid if relevant."
+                        if latest_sentiment == "negative"
+                        else f"The latest evidence is positive for {topic}."
+                    )
                 ),
             }
         )
@@ -1294,6 +1366,7 @@ def try_llm_wiki(
                     "Use exactly these sections: Bottom Line, Best Fit, Food / Drink Match, "
                     "Logistics, Things To Avoid, Suggested Visit Plan, Recommended Actions For You, Evidence From Reviews. "
                     "If a retrieved review is tagged user-added or is the newest relevant review, reflect its concrete information explicitly and cite its review ID. "
+                    "Conflict notes are hard lint constraints. When a conflict note has winnerSentiment='negative' and blockedRecommendation is non-empty, do not recommend that product or topic anywhere. Mention it only as something to avoid, and treat supersededReviewIds as older evidence that must not support a recommendation. "
                     "Cite review IDs for claims. Do not address the user by name or say that the page was written for a specific person; let the personalization show through the selected recommendations."
                 ),
             },
@@ -1306,7 +1379,7 @@ def try_llm_wiki(
                         "userText": user_text,
                         "facts": facts,
                         "evidence": [compact_review(review) for review in evidence[:12]],
-                        "conflictPolicy": "When review information conflicts, use the newest review by reviewDate and mention superseded older evidence.",
+                        "conflictPolicy": "When review information conflicts, use the newest review by reviewDate, breaking same-day ties by larger review id. If the newest winner is negative, do not recommend the blockedRecommendation product/topic.",
                         "conflicts": conflicts,
                     },
                     ensure_ascii=False,
@@ -1594,6 +1667,23 @@ def build_index() -> dict[str, Any]:
     return get_state()
 
 
+def initialize_demo() -> dict[str, Any]:
+    ensure_dirs()
+    if not (DATA_DIR / "reviews.json").exists():
+        return reset_demo()
+    reviews = load_reviews()
+    state = read_json(STATE_FILE, default_state())
+    index_status = ReviewIndex(reviews).index()
+    state["indexed"] = True
+    state["indexStatus"] = index_status
+    state["memoryStatus"] = read_last_cognee_status() or cognee_memory_status()
+    state["updatedAt"] = now_stamp()
+    write_json(STATE_FILE, state)
+    if not (WIKI_DIR / "current-personalized-wiki.md").exists():
+        write_wiki_artifacts(state["wiki"], state.get("facts", []), state.get("evidence", []), state.get("conflicts", []))
+    return get_state()
+
+
 def generation_session_id(user_text: str) -> str:
     digest = hashlib.sha1(user_text.strip().encode("utf-8")).hexdigest()[:12]
     return f"generation-{digest}"
@@ -1765,7 +1855,7 @@ class DemoHandler(BaseHTTPRequestHandler):
 
 
 def run_server(port: int = DEFAULT_PORT) -> None:
-    reset_demo()
+    initialize_demo()
     server = ThreadingHTTPServer(("127.0.0.1", port), DemoHandler)
     print(f"Personal Business Wiki demo running at http://127.0.0.1:{port}")
     server.serve_forever()

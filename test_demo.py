@@ -208,6 +208,22 @@ She want to meet his boy friend who prefer special manual."""
         self.assertIn("reviewDate", payload["reviews"][0])
         self.assertIn("tags", payload["reviews"][0])
 
+    def test_initialize_demo_preserves_user_added_reviews(self) -> None:
+        server.reset_demo()
+        server.add_review(
+            {
+                "body": "User-added persistence check: manual brew stayed in the review corpus after server initialization.",
+                "rating": 5,
+                "reviewDate": "2026-05-16",
+                "tags": "manual-brew persistence",
+            }
+        )
+        state = server.initialize_demo()
+        payload = server.get_reviews_payload()
+        self.assertEqual(state["reviewCount"], 421)
+        self.assertEqual(payload["reviewCount"], 421)
+        self.assertTrue(any(review["id"] == "r421" for review in payload["reviews"]))
+
     def test_added_review_is_retrieved_for_same_user_info(self) -> None:
         server.reset_demo()
         payload = server.add_review(
@@ -257,6 +273,43 @@ She want to meet his boy friend who prefer special manual."""
         after_ids = {review["id"] for review in after["evidence"]}
         self.assertNotIn("r421", after_ids)
         self.assertNotIn("r421", after["wiki"])
+
+    def test_latest_product_conflict_blocks_older_positive_review(self) -> None:
+        server.reset_demo()
+        server.add_review(
+            {
+                "body": "There is a high rating special manual brew coffee called banana and mate cold brew, everyone prefer manual brew coffee should try it!",
+                "rating": 5,
+                "reviewDate": "2026-05-16",
+                "tags": "pour-over quality",
+            }
+        )
+        server.add_review(
+            {
+                "body": "I don't like banana and mate cold brew, don't order it.",
+                "rating": 5,
+                "reviewDate": "2026-05-16",
+            }
+        )
+        server.add_review(
+            {
+                "body": "I don't like banana and mate cold brew, don't order it. The guy previous said this is good is fake news.",
+                "rating": 1,
+                "reviewDate": "2026-05-16",
+            }
+        )
+        result = server.generate_personalized_wiki(
+            "Name: Mina. She wants to meet her boyfriend who prefers special manual brew coffee."
+        )
+        conflict = next(
+            item for item in result["conflicts"] if item["topic"] == "banana and mate cold brew"
+        )
+        self.assertEqual(conflict["winnerReviewId"], "r423")
+        self.assertEqual(conflict["winnerSentiment"], "negative")
+        self.assertEqual(conflict["blockedRecommendation"], "banana and mate cold brew")
+        self.assertIn("r421", conflict["supersededReviewIds"])
+        evidence_ids = [review["id"] for review in result["evidence"]]
+        self.assertLess(evidence_ids.index("r423"), evidence_ids.index("r421"))
 
 
 if __name__ == "__main__":
